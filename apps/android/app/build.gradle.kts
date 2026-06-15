@@ -39,7 +39,7 @@ android {
 
     buildFeatures {
         viewBinding = true
-        buildConfig = true
+        buildConfig = true  // requerido pelo AGP 8.x para gerar BuildConfig.DEBUG
     }
 
     packaging {
