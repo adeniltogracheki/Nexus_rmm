@@ -38,11 +38,20 @@ jobs:
       - name: Write local.properties
         run: echo "sdk.dir=$ANDROID_SDK_ROOT" > apps/android/local.properties
 
-      # Limpa o cache de transforms do Gradle para garantir que o AAPT2
-      # bundled (x86_64) seja reextraído da dependência Maven, evitando
-      # binários ARM64 corrompidos vindos de um cache anterior.
+      # Limpa o cache de transforms do Gradle para evitar binários AAPT2
+      # de outra arquitetura vindos de cache anterior.
       - name: Clear Gradle transforms cache
         run: rm -rf ~/.gradle/caches/transforms-*
+
+      # Força o AGP a usar o AAPT2 do SDK pré-instalado no runner
+      # (binário nativo da arquitetura do runner) em vez do AAPT2
+      # bundled no Maven (que pode ser de outra arquitetura).
+      - name: Override AAPT2 to use SDK binary
+        run: |
+          AAPT2="$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2"
+          echo "android.aapt2FromMavenOverride=$AAPT2" >> apps/android/gradle.properties
+          echo "✓ AAPT2 override: $AAPT2"
+          ls -la "$AAPT2"
 
       # ── Debug APK (para testes rápidos, sem keystore) ─────────────────────
       - name: Build debug APK
