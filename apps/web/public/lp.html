@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nexus RMM — Controle total da sua frota de TI</title>
+<meta name="description" content="RMM brasileiro: acesso remoto, terminal, serviços, inventário, manutenção de ativos, relatórios e portal do cliente. Gerencie todas as máquinas dos seus clientes num só lugar." />
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #09090b; color: #e4e4e7; font-family: system-ui, -apple-system, sans-serif; }
+  .grad { background: radial-gradient(1200px 500px at 50% -10%, rgba(16,185,129,.18), transparent 70%); }
+  .card { background: linear-gradient(180deg, rgba(24,24,27,.7), rgba(9,9,11,.7)); border: 1px solid #27272a; }
+  .glow { box-shadow: 0 0 40px rgba(16,185,129,.15); }
+</style>
+</head>
+<body class="grad">
+  <!-- Nav -->
+  <header class="max-w-6xl mx-auto px-5 py-5 flex items-center justify-between">
+    <div class="flex items-center gap-2 font-bold text-lg"><span class="text-emerald-400 text-2xl">◆</span> Nexus<span class="text-emerald-400">RMM</span></div>
+    <a href="/login" class="px-4 py-2 rounded-xl bg-emerald-500 text-black font-semibold text-sm hover:bg-emerald-400 transition">Entrar</a>
+  </header>
+
+  <!-- Hero -->
+  <section class="max-w-4xl mx-auto px-5 pt-16 pb-20 text-center">
+    <div class="inline-block px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-semibold mb-6">🇧🇷 RMM brasileiro · multiempresa · seguro</div>
+    <h1 class="text-4xl md:text-6xl font-extrabold leading-tight">Controle <span class="text-emerald-400">total</span> da TI dos seus clientes</h1>
+    <p class="text-zinc-400 text-lg mt-5 max-w-2xl mx-auto">Acesso remoto, terminal, serviços, inventário, manutenção de ativos e relatórios profissionais — todas as máquinas dos seus clientes num painel só. Como um GLPI, porém muito melhor.</p>
+    <div class="flex flex-wrap gap-3 justify-center mt-8">
+      <a href="/login" class="px-6 py-3 rounded-xl bg-emerald-500 text-black font-bold hover:bg-emerald-400 transition glow">Começar teste grátis</a>
+      <a href="#planos" class="px-6 py-3 rounded-xl border border-zinc-700 font-semibold hover:border-emerald-500/50 transition">Ver planos</a>
+    </div>
+    <p class="text-zinc-600 text-xs mt-4">Agente leve (~30MB RAM) · instalação em 1 comando · mTLS ponta a ponta</p>
+  </section>
+
+  <!-- Features -->
+  <section class="max-w-6xl mx-auto px-5 py-12">
+    <h2 class="text-center text-2xl font-bold mb-10">Tudo que um MSP precisa</h2>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">🖥️</div><div class="font-bold">Acesso remoto</div><p class="text-zinc-400 text-sm mt-1">Veja e controle a tela ao vivo, com copiar/colar e tela cheia. Senha por sessão.</p></div>
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">⌨️</div><div class="font-bold">Terminal real</div><p class="text-zinc-400 text-sm mt-1">PowerShell/CMD em tempo real, estilo SSH, direto do navegador.</p></div>
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">⚙️</div><div class="font-bold">Serviços do Windows</div><p class="text-zinc-400 text-sm mt-1">Iniciar/parar/reiniciar, watchdog e ações em massa.</p></div>
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">📊</div><div class="font-bold">Saúde ao vivo</div><p class="text-zinc-400 text-sm mt-1">CPU, RAM e disco em tempo real, com semáforo de saúde por máquina.</p></div>
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">🔧</div><div class="font-bold">Gestão de manutenção</div><p class="text-zinc-400 text-sm mt-1">Peças trocadas, técnico, custo, foto + nota fiscal, preventiva agendada e alertas.</p></div>
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">📈</div><div class="font-bold">Relatórios profissionais</div><p class="text-zinc-400 text-sm mt-1">Operacional, rastreabilidade, inventário e manutenção — em PDF com sua marca.</p></div>
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">🏢</div><div class="font-bold">Portal do cliente</div><p class="text-zinc-400 text-sm mt-1">Seu cliente acompanha os equipamentos dele e abre chamados. Revenda mensalidade.</p></div>
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">🔒</div><div class="font-bold">Seguro por padrão</div><p class="text-zinc-400 text-sm mt-1">mTLS, MFA, RBAC, isolamento por empresa, auditoria imutável.</p></div>
+      <div class="card rounded-2xl p-5"><div class="text-2xl mb-2">📦</div><div class="font-bold">Inventário completo</div><p class="text-zinc-400 text-sm mt-1">Hardware, software, SO e rede de cada ativo, sempre atualizado.</p></div>
+    </div>
+  </section>
+
+  <!-- Planos -->
+  <section id="planos" class="max-w-6xl mx-auto px-5 py-16">
+    <h2 class="text-center text-2xl font-bold mb-2">Planos</h2>
+    <p class="text-center text-zinc-500 text-sm mb-10">Comece grátis. Faça upgrade quando crescer.</p>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card rounded-2xl p-5 flex flex-col"><div class="font-bold">Trial</div><div class="text-3xl font-extrabold text-emerald-400 my-2">Grátis</div><div class="text-zinc-500 text-xs mb-3">Até 3 máquinas · todos os recursos</div><a href="/login" class="mt-auto text-center px-4 py-2 rounded-xl border border-zinc-700 text-sm font-semibold hover:border-emerald-500/50">Testar</a></div>
+      <div class="card rounded-2xl p-5 flex flex-col"><div class="font-bold">Essencial</div><div class="text-3xl font-extrabold my-2">R$149<span class="text-sm text-zinc-500">/mês</span></div><div class="text-zinc-500 text-xs mb-3">Até 25 máquinas · acesso remoto, terminal, serviços, relatórios</div><a href="/login" class="mt-auto text-center px-4 py-2 rounded-xl border border-zinc-700 text-sm font-semibold hover:border-emerald-500/50">Assinar</a></div>
+      <div class="card rounded-2xl p-5 flex flex-col border-emerald-500/50 glow relative"><div class="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-emerald-500 text-black text-[10px] font-bold">POPULAR</div><div class="font-bold">Pro</div><div class="text-3xl font-extrabold text-emerald-400 my-2">R$399<span class="text-sm text-zinc-500">/mês</span></div><div class="text-zinc-500 text-xs mb-3">Até 150 máquinas · TODOS os recursos + portal do cliente + scripts</div><a href="/login" class="mt-auto text-center px-4 py-2 rounded-xl bg-emerald-500 text-black text-sm font-bold hover:bg-emerald-400">Assinar</a></div>
+      <div class="card rounded-2xl p-5 flex flex-col"><div class="font-bold">Enterprise</div><div class="text-3xl font-extrabold my-2">Sob consulta</div><div class="text-zinc-500 text-xs mb-3">Máquinas ilimitadas · suporte dedicado</div><a href="/login" class="mt-auto text-center px-4 py-2 rounded-xl border border-zinc-700 text-sm font-semibold hover:border-emerald-500/50">Falar com vendas</a></div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="max-w-3xl mx-auto px-5 py-16 text-center">
+    <h2 class="text-3xl font-bold">Pronto pra assumir o controle?</h2>
+    <p class="text-zinc-400 mt-3">Instale o agente numa máquina em 1 comando e veja a mágica acontecer.</p>
+    <a href="/login" class="inline-block mt-6 px-8 py-3 rounded-xl bg-emerald-500 text-black font-bold hover:bg-emerald-400 transition glow">Começar agora — grátis</a>
+  </section>
+
+  <footer class="border-t border-zinc-800 py-8 text-center text-zinc-600 text-xs">
+    Nexus RMM · feito no Brasil 🇧🇷 · <a href="/login" class="hover:text-emerald-400">Entrar no painel</a>
+  </footer>
+</body>
+</html>

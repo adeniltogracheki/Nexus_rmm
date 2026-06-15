@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nexus RMM Agent</string>
+    <string name="accessibility_label">Nexus RMM Control</string>
+    <string name="accessibility_description">Permite ao Nexus RMM controlar este dispositivo remotamente (toque e teclado) sem necessidade de root.</string>
+</resources>

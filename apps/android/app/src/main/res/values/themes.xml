@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.NexusAgent" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#00C070</item>
+        <item name="colorPrimaryDark">#007040</item>
+        <item name="colorAccent">#00C070</item>
+        <item name="android:windowBackground">#0a0a0f</item>
+        <item name="android:textColorPrimary">#FFFFFF</item>
+        <item name="android:textColorSecondary">#AAAAAA</item>
+    </style>
+</resources>

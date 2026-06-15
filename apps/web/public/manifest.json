@@ -1,0 +1,37 @@
+{
+  "name": "Nexus RMM",
+  "short_name": "Nexus RMM",
+  "description": "Monitoramento e gerenciamento de TI — acesso remoto, terminal, IA e mais.",
+  "start_url": "/painel",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#07070a",
+  "theme_color": "#07070a",
+  "categories": ["productivity", "utilities", "business"],
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Dashboard do Nexus RMM"
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false
+}

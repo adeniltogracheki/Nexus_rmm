@@ -1,0 +1,30 @@
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Ambiente / segredos
+.env
+.env.*
+!.env.example
+secrets/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Backups do banco gerados pelo gerenciar.sh
+backups/
+
+# Editor / SO
+.DS_Store
+.idea/
+.vscode/
+
+# Bundles git temporarios
+*.bundle
+
+# Biblioteca de skills (referencia de engenharia, ~111MB) — disponivel no projeto,
+# fora do git para nao inchar repo/deploy. Ver CLAUDE.md.
+skills/
+.pnpm-store/

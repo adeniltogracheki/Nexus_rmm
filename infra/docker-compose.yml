@@ -1,0 +1,112 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: nexus-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD}
+      POSTGRES_DB: nexus
+      # Consumida pelo script de init para criar a role da app.
+      NEXUS_APP_PASSWORD: ${NEXUS_APP_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - nexus_pg:/var/lib/postgresql/data
+      - ./initdb:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nexus"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - traefik_net
+
+  redis:
+    image: redis:7
+    container_name: nexus-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - nexus_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - traefik_net
+
+  nexus-server:
+    build:
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    container_name: nexus-server
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+      - SERVER_PORT=4000
+      - AGENT_GATEWAY_PORT=8443
+      - DATABASE_URL=postgresql://nexus_app:${NEXUS_APP_PASSWORD}@postgres:5432/nexus
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+      - SCREEN_GRANT_SECRET=${SCREEN_GRANT_SECRET}
+      - SCREEN_VNC_PASSWORD=${SCREEN_VNC_PASSWORD}
+      - PUBLIC_URL=https://rmm.gmtec.tec.br
+      - APP_URL=https://rmm.gmtec.tec.br
+      - TELA_RELAY_URL=https://rmm.gmtec.tec.br/spike
+      - AGENTE_VERSAO_PROD=0.6.3
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - MP_ACCESS_TOKEN=${MP_ACCESS_TOKEN}
+      - CA_DIR=/app/secrets
+      - COOKIE_DOMAIN=
+    ports:
+      - "8443:8443"
+    volumes:
+      - ../secrets:/app/secrets
+    networks:
+      - traefik_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nexus-server.rule=Host(`rmm.gmtec.tec.br`) && (PathPrefix(`/api`) || PathPrefix(`/socket.io`))"
+      - "traefik.http.routers.nexus-server.entrypoints=websecure"
+      - "traefik.http.routers.nexus-server.tls=true"
+      - "traefik.http.routers.nexus-server.tls.certresolver=myresolver"
+      - "traefik.http.services.nexus-server.loadbalancer.server.port=4000"
+
+  nexus-web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    container_name: nexus-web
+    restart: unless-stopped
+    depends_on:
+      - nexus-server
+    environment:
+      - NODE_ENV=production
+      - NEXUS_SERVER_INTERNAL_URL=http://nexus-server:4000
+    networks:
+      - traefik_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nexus-web.rule=Host(`rmm.gmtec.tec.br`)"
+      - "traefik.http.routers.nexus-web.entrypoints=websecure"
+      - "traefik.http.routers.nexus-web.tls=true"
+      - "traefik.http.routers.nexus-web.tls.certresolver=myresolver"
+      - "traefik.http.services.nexus-web.loadbalancer.server.port=3000"
+
+volumes:
+  nexus_pg:
+  nexus_redis:
+
+networks:
+  traefik_net:
+    external: true

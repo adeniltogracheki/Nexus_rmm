@@ -1,0 +1,27 @@
+services:
+  spike-relay:
+    build: ./relay
+    image: nexus-spike-relay:local
+    container_name: nexus-spike-relay
+    restart: unless-stopped
+    environment:
+      SPIKE_AGENT_TOKEN: ${SPIKE_AGENT_TOKEN}
+      SPIKE_VIEW_PASSWORD: ${SPIKE_VIEW_PASSWORD}
+      SPIKE_VNC_PASSWORD: ${SPIKE_VNC_PASSWORD}
+      SCREEN_GRANT_SECRET: ${SCREEN_GRANT_SECRET}
+      JWT_SECRET: ${JWT_SECRET}
+      SPIKE_RELAY_PORT: "7700"
+    networks: [traefik]
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${TRAEFIK_NET}
+      - "traefik.http.routers.nexusspike.rule=Host(`rmm.gmtec.tec.br`) && PathPrefix(`/spike`)"
+      - traefik.http.routers.nexusspike.entrypoints=websecure
+      - traefik.http.routers.nexusspike.tls=true
+      - traefik.http.routers.nexusspike.tls.certresolver=myresolver
+      - traefik.http.services.nexusspike.loadbalancer.server.port=7700
+
+networks:
+  traefik:
+    external: true
+    name: ${TRAEFIK_NET}

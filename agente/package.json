@@ -1,0 +1,18 @@
+{
+  "name": "nexus-agente",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node agent.mjs",
+    "build": "npx esbuild agent.mjs --bundle --platform=node --format=cjs --define:import.meta.url=__importMetaUrl '--banner:js=const __importMetaUrl = require(\"url\").pathToFileURL(__filename).href;' --external:@homebridge/node-pty-prebuilt-multiarch --outfile=../apps/web/public/agente/agent.js"
+  },
+  "dependencies": {
+    "@homebridge/node-pty-prebuilt-multiarch": "^0.13.1",
+    "socket.io-client": "^4.8.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.1"
+  }
+}
