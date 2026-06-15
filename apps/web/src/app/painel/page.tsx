@@ -5514,7 +5514,20 @@ export default function DashboardPage() {
                 Histórico / Auditoria
               </button>
               <button
-                onClick={() => setAbaAtiva("terminal")}
+                onClick={() => {
+                  setAbaAtiva("terminal");
+                  // Auto-conecta PowerShell ao abrir a aba, igual ao acesso remoto que dispara window.open diretamente.
+                  // Só inicia se: máquina online, terminal ainda não conectado/conectando, usuário não é viewer.
+                  if (
+                    maquinaServicos?.online &&
+                    terminalStatus === "disconnected" &&
+                    user?.papel !== "viewer" &&
+                    socketRef.current
+                  ) {
+                    // Timeout mínimo para garantir que o socketRef e o estado já estão sincronizados.
+                    setTimeout(() => iniciarTerminal("powershell"), 50);
+                  }
+                }}
                 className={`py-3 px-4 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
                   abaAtiva === "terminal"
                     ? "border-emerald-500 text-emerald-400"
