@@ -63,31 +63,64 @@ jobs:
           uname -m
           "$AAPT2" version && echo "✓ AAPT2 runs ok" || echo "✗ AAPT2 failed to run"
 
-      # ── Debug APK (para testes rápidos, sem keystore) ─────────────────────
+      # Imprime gradle.properties final (com override AAPT2) antes do build
+      - name: Print gradle.properties
+        run: cat apps/android/gradle.properties
+
+      # ── Fase 1: recursos (AAPT2) ─────────────────────────────────────────
+      - name: Step 1 - Process Resources
+        id: step_resources
+        working-directory: apps/android
+        run: |
+          set -o pipefail
+          ./gradlew :app:processDebugResources --no-daemon --stacktrace 2>&1 | tee /tmp/step-resources.log
+        continue-on-error: true
+
+      - name: Show Resource Error
+        if: steps.step_resources.outcome == 'failure'
+        run: |
+          echo "=== PROCESS RESOURCES FAILED ==="
+          grep -E "error:|AAPT2|Cannot|FAILED" /tmp/step-resources.log | head -40 || true
+          tail -50 /tmp/step-resources.log || true
+
+      # ── Fase 2: compilação Kotlin ─────────────────────────────────────────
+      - name: Step 2 - Compile Kotlin
+        id: step_kotlin
+        working-directory: apps/android
+        run: |
+          set -o pipefail
+          ./gradlew :app:compileDebugKotlin --no-daemon --stacktrace 2>&1 | tee /tmp/step-kotlin.log
+        continue-on-error: true
+
+      - name: Show Kotlin Error
+        if: steps.step_kotlin.outcome == 'failure'
+        run: |
+          echo "=== KOTLIN COMPILATION FAILED ==="
+          grep -E "error:|Unresolved|Cannot find|Type mismatch" /tmp/step-kotlin.log | head -60 || true
+          tail -80 /tmp/step-kotlin.log || true
+
+      # ── Fase 3: build completo (só se ambos passaram) ──────────────────────
       - name: Build debug APK
+        if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
         working-directory: apps/android
         run: |
           set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/gradle-build.log
 
-      - name: Show Kotlin/Java compile errors
-        if: failure()
-        run: |
-          echo "=== KOTLIN/JAVA ERRORS ==="
-          grep -n "error:" /tmp/gradle-build.log | head -50 || echo "(no error: lines found)"
-          echo ""
-          echo "=== FAILED TASKS ==="
-          grep -n "FAILED\|Could not\|Unresolved\|Cannot" /tmp/gradle-build.log | head -30 || echo "(none)"
-          echo ""
-          echo "=== LAST 100 LINES ==="
-          tail -100 /tmp/gradle-build.log || true
+      # Falha o job se qualquer step de build falhou
+      - name: Fail if any build step failed
+        if: steps.step_resources.outcome == 'failure' || steps.step_kotlin.outcome == 'failure'
+        run: exit 1
 
-      - name: Upload Gradle build log on failure
+      - name: Upload build logs on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: gradle-build-log-${{ github.sha }}
-          path: /tmp/gradle-build.log
+          name: build-logs-${{ github.sha }}
+          path: |
+            /tmp/step-resources.log
+            /tmp/step-kotlin.log
+            /tmp/gradle-build.log
           retention-days: 7
 
       # ── Release APK (assinado com keystore do Secret) ────────────────────
