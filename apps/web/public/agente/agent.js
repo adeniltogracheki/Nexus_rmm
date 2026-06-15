@@ -13090,7 +13090,8 @@ async function main() {
   socket.on("connect_error", (e) => console.error("erro de conex\xE3o:", e.message));
   function iniciarSpawnPipeMode(sessionId, cmdExe, args) {
     try {
-      const child = (0, import_node_child_process.spawn)(cmdExe, args, { env: process.env, windowsHide: true });
+      const pipeArgs = import_node_os.default.platform() === "win32" ? ["-NonInteractive", ...args] : args;
+      const child = (0, import_node_child_process.spawn)(cmdExe, pipeArgs, { env: process.env, windowsHide: true });
       activeShells.set(sessionId, { proc: child, isPty: false, isWorker: false });
       child.stdout.setEncoding("utf8");
       child.stderr.setEncoding("utf8");
@@ -13116,9 +13117,12 @@ Erro ao iniciar shell: ${err.message}\r
         lineEditorBuffers.delete(sessionId);
       });
       if (import_node_os.default.platform() === "win32") {
+        socket.emit("agent:terminal-stdout", {
+          sessionId,
+          data: "\x1B[32m[Nexus RMM] Terminal ativo \u2014 Session 0 | UTF-8\x1B[0m\r\n"
+        });
         child.stdin.write(
-          `[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false; Write-Host '[Nexus RMM] Terminal pronto (modo pipe/Session 0)' -ForegroundColor Green; Write-Host "PS $(Get-Location)> " -NoNewline -ForegroundColor Cyan\r
-`
+          "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\r\n"
         );
       }
     } catch (err) {

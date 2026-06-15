@@ -189,11 +189,6 @@ export default function DashboardPage() {
   // Acesso à tela (não supervisionado)
   const [abrindoTela, setAbrindoTela] = useState<string | null>(null);
   const [enviandoWol, setEnviandoWol] = useState<string | null>(null);
-  const [telaUrl, setTelaUrl] = useState<string | null>(null);
-  const [telaNome, setTelaNome] = useState<string>("");
-  const [monitoresMaquina, setMonitoresMaquina] = useState<MonitorInfo[]>([]);
-  const [monitorIdx, setMonitorIdx] = useState<number>(0);
-  const [maquinaTelaId, setMaquinaTelaId] = useState<string | null>(null);
   const [promptCfg, setPromptCfg] = useState<{ titulo: string; valor: string; resolve: (v: string | null) => void } | null>(null);
   const [novaTag, setNovaTag] = useState("");
   const [colW, setColW] = useState<Record<string, number>>({});
@@ -1935,9 +1930,7 @@ export default function DashboardPage() {
         }
       });
 
-      socket.on("admin:monitors-list", (data: { machineId: string; monitores: MonitorInfo[] }) => {
-        setMonitoresMaquina(data.monitores ?? []);
-      });
+      // admin:monitors-list não é mais usado (viewer abre em nova aba)
 
     } catch (err) {
       console.error("Erro ao inicializar WebSocket admin:", err);
@@ -2144,13 +2137,10 @@ export default function DashboardPage() {
     }
   }
 
-  // Acesso não supervisionado à tela: pede um grant efêmero e abre o viewer.
+  // Acesso não supervisionado à tela: pede um grant efêmero e abre o viewer em nova aba.
   // O admin NÃO digita senha de tela — a credencial é injetada pelo servidor.
   async function abrirTela(m: Maquina) {
     setAbrindoTela(m.id);
-    setMonitoresMaquina([]);
-    setMonitorIdx(0);
-    setMaquinaTelaId(m.id);
     try {
       const res = await fetch(`/api/maquinas/${m.id}/tela`, { method: "POST" });
       if (!res.ok) {
@@ -2163,23 +2153,11 @@ export default function DashboardPage() {
         return;
       }
       const data = await res.json();
-      setTelaUrl(data.viewerUrl);
-      setTelaNome(m.apelido || m.hostname);
-      // Solicitar lista de monitores via Socket.io (resposta chega em admin:monitors-list)
-      if (socketRef.current?.connected) {
-        socketRef.current.emit("admin:list-monitors", { machineId: m.id });
-      }
+      window.open(data.viewerUrl, "_blank", "noopener,noreferrer");
     } catch {
       mostrarToast("Erro de rede ao abrir a tela.", "erro");
     } finally {
       setAbrindoTela(null);
-    }
-  }
-
-  function selecionarMonitor(idx: number) {
-    setMonitorIdx(idx);
-    if (socketRef.current?.connected && maquinaTelaId) {
-      socketRef.current.emit("admin:screen-select-monitor", { machineId: maquinaTelaId, monitorIdx: idx });
     }
   }
 
@@ -4727,74 +4705,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Acesso remoto embutido (iframe, sem nova aba) */}
-      {telaUrl && (
-        <div className="fixed inset-0 z-50 bg-black flex flex-col">
-          <div className="flex items-center px-3 py-1.5 bg-zinc-950 border-b border-zinc-800 shrink-0 gap-2 flex-wrap">
-            {/* Máquina + status */}
-            <span className="text-xs font-semibold text-white flex items-center gap-1.5 min-w-0 shrink-0">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
-              {telaNome}
-            </span>
-
-            {/* Seletor de monitor — aparece só quando há 2+ monitores */}
-            {monitoresMaquina.length > 1 && (
-              <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto">
-                <span className="text-[10px] text-zinc-500 shrink-0 mr-0.5">Monitor:</span>
-                {monitoresMaquina.map((mon, i) => (
-                  <button
-                    key={i}
-                    onClick={() => selecionarMonitor(i)}
-                    title={`Tela ${i + 1} — ${mon.w}×${mon.h}`}
-                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold border transition-colors cursor-pointer shrink-0 ${
-                      monitorIdx === i
-                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                        : "bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-emerald-500/30 hover:text-emerald-300"
-                    }`}
-                  >
-                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-                    </svg>
-                    {i + 1}
-                    {mon.w > 0 && <span className="text-[9px] opacity-60 font-mono">{mon.w}×{mon.h}</span>}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Ações */}
-            <div className="flex items-center gap-1.5 ml-auto shrink-0">
-              <button
-                onClick={() => {
-                  const w = window.open(telaUrl, "_blank", "width=1280,height=800,menubar=no,toolbar=no,status=no,scrollbars=no");
-                  if (w) setTelaUrl(null);
-                }}
-                className="text-xs text-zinc-400 hover:text-emerald-300 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-emerald-500/30 cursor-pointer transition-colors"
-                title="Abrir em janela separada"
-              >
-                ⧉ Janela
-              </button>
-              <a
-                href={telaUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-zinc-400 hover:text-white px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 cursor-pointer transition-colors"
-                title="Abrir em nova aba"
-              >
-                ↗ Aba
-              </a>
-              <button
-                onClick={() => setTelaUrl(null)}
-                className="text-xs font-bold text-zinc-400 hover:text-red-400 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-red-500/30 cursor-pointer transition-colors"
-                title="Fechar acesso remoto"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-          <iframe src={telaUrl} className="flex-1 w-full border-0 bg-black" title="Acesso remoto" allow="clipboard-read; clipboard-write; fullscreen"></iframe>
-        </div>
-      )}
+      {/* Acesso remoto: abre em nova aba (window.open em abrirTela) */}
 
       {/* Agendador de tarefas */}
       {vistaTarefas && (

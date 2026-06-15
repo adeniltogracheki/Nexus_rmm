@@ -1300,7 +1300,12 @@ async function main() {
   // ou quando o worker PTY não conseguiu inicializar (ex: Session 0 sem acesso ao desktop).
   function iniciarSpawnPipeMode(sessionId, cmdExe, args) {
     try {
-      const child = spawn(cmdExe, args, { env: process.env, windowsHide: true });
+      // Em pipe mode, adiciona -NonInteractive para o PS não ecoar stdin nem mostrar prompt duplo.
+      // O line editor do agente já faz echo char-a-char para o cliente.
+      const pipeArgs = os.platform() === "win32"
+        ? ["-NonInteractive", ...args]
+        : args;
+      const child = spawn(cmdExe, pipeArgs, { env: process.env, windowsHide: true });
       activeShells.set(sessionId, { proc: child, isPty: false, isWorker: false });
 
       child.stdout.setEncoding("utf8");
@@ -1327,12 +1332,16 @@ async function main() {
       });
 
       if (os.platform() === "win32") {
-        // Em pipe mode (Session 0 / SYSTEM), PowerShell não imprime prompt automático.
-        // Enviamos uma linha inicial para o usuário saber que o terminal está ativo.
+        // Em pipe mode, PowerShell lê stdin em modo não-interativo.
+        // Emitimos a mensagem de boas-vindas direto pelo socket (sem passar pelo PS)
+        // para evitar o eco do comando de init no terminal do usuário.
+        socket.emit("agent:terminal-stdout", {
+          sessionId,
+          data: "\x1b[32m[Nexus RMM] Terminal ativo — Session 0 | UTF-8\x1b[0m\r\n",
+        });
+        // Configura encoding via stdin (silencioso — NonInteractive não ecoa)
         child.stdin.write(
-          "[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding $false; " +
-          "Write-Host '[Nexus RMM] Terminal pronto (modo pipe/Session 0)' -ForegroundColor Green; " +
-          "Write-Host \"PS $(Get-Location)> \" -NoNewline -ForegroundColor Cyan\r\n"
+          "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\r\n"
         );
       }
     } catch (err) {
