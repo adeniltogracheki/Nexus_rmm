@@ -53,16 +53,26 @@ jobs:
           echo "✓ AAPT2 override: $AAPT2"
           ls -la "$AAPT2"
 
+      # Diagnóstico: mostrar versão do AAPT2 override antes do build
+      - name: Verify AAPT2 binary
+        run: |
+          AAPT2="$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2"
+          echo "=== AAPT2 path: $AAPT2 ==="
+          ls -la "$AAPT2"
+          file "$AAPT2" || echo "(file command not available)"
+          uname -m
+          "$AAPT2" version && echo "✓ AAPT2 runs ok" || echo "✗ AAPT2 failed to run"
+
       # ── Debug APK (para testes rápidos, sem keystore) ─────────────────────
       - name: Build debug APK
         working-directory: apps/android
         run: |
           set -o pipefail
-          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/gradle-build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee /tmp/gradle-build.log
 
-      - name: Show build error (last 150 lines)
+      - name: Show build error (last 200 lines)
         if: failure()
-        run: tail -150 /tmp/gradle-build.log || true
+        run: tail -200 /tmp/gradle-build.log || true
 
       - name: Upload Gradle build log on failure
         if: failure()
