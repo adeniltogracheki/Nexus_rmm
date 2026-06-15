@@ -68,11 +68,19 @@ jobs:
         working-directory: apps/android
         run: |
           set -o pipefail
-          ./gradlew assembleDebug --no-daemon --stacktrace --info 2>&1 | tee /tmp/gradle-build.log
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/gradle-build.log
 
-      - name: Show build error (last 200 lines)
+      - name: Show Kotlin/Java compile errors
         if: failure()
-        run: tail -200 /tmp/gradle-build.log || true
+        run: |
+          echo "=== KOTLIN/JAVA ERRORS ==="
+          grep -n "error:" /tmp/gradle-build.log | head -50 || echo "(no error: lines found)"
+          echo ""
+          echo "=== FAILED TASKS ==="
+          grep -n "FAILED\|Could not\|Unresolved\|Cannot" /tmp/gradle-build.log | head -30 || echo "(none)"
+          echo ""
+          echo "=== LAST 100 LINES ==="
+          tail -100 /tmp/gradle-build.log || true
 
       - name: Upload Gradle build log on failure
         if: failure()
