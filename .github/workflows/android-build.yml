@@ -33,6 +33,11 @@ jobs:
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
+      # Escreve o local.properties com o caminho correto do SDK no runner
+      # (o arquivo está no .gitignore pois o caminho varia por ambiente)
+      - name: Write local.properties
+        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > apps/android/local.properties
+
       # ── Debug APK (para testes rápidos, sem keystore) ─────────────────────
       - name: Build debug APK
         working-directory: apps/android

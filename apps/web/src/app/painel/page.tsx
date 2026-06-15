@@ -6899,7 +6899,8 @@ export default function DashboardPage() {
 
       {/* ═══════════════════════ DOCUMENTAÇÃO ═══════════════════════ */}
       {secao === "docs" && (
-        <main className="flex-1 max-w-[900px] w-full mx-auto p-4 md:p-8 space-y-8">
+        <div className="flex-1 flex justify-center px-4 md:px-8 py-6 overflow-y-auto">
+        <main className="w-full max-w-[960px] space-y-8">
 
           {/* Intro */}
           <div className="glass-panel rounded-2xl p-6 border border-emerald-500/20 bg-gradient-to-br from-emerald-500/5 to-transparent">
@@ -7223,6 +7224,7 @@ export default function DashboardPage() {
           </div>
 
         </main>
+        </div>
       )}
 
       {/* Mobile bottom navigation */}

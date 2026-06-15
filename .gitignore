@@ -28,3 +28,6 @@ backups/
 # fora do git para nao inchar repo/deploy. Ver CLAUDE.md.
 skills/
 .pnpm-store/
+
+# Android — caminho local do SDK, nunca commitar
+apps/android/local.properties
