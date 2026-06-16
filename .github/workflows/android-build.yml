@@ -162,34 +162,38 @@ jobs:
           echo "SHA256:  $(sha256sum $APK | cut -d' ' -f1)"
 
       # ── Deploy automático ao servidor ────────────────────────────────────────
-      # Envia o APK para /mnt/nexus-rmm/apps/android/releases/ no servidor.
-      # Pré-requisito: segredo DEPLOY_SSH_KEY configurado em Settings → Secrets → Actions.
+      # Usa appleboy/scp-action — recebe a chave PEM diretamente, sem base64.
+      # Pré-requisito: DEPLOY_SSH_KEY = conteúdo bruto de ~/.ssh/id_ed25519
+
+      - name: Create releases dir on server
+        if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 163.176.169.89
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: mkdir -p /mnt/nexus-rmm/apps/android/releases
+
       - name: Deploy APK to server
         if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
-        env:
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-        run: |
-          APK=apps/android/app/build/outputs/apk/debug/app-debug.apk
-          SERVER=163.176.169.89
-          REMOTE_DIR=/mnt/nexus-rmm/apps/android/releases
-          SHA=${{ github.sha }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: 163.176.169.89
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          source: apps/android/app/build/outputs/apk/debug/app-debug.apk
+          target: /mnt/nexus-rmm/apps/android/releases/
+          strip_components: 6
 
-          # Configura SSH — chave armazenada em base64 para preservar quebras de linha
-          mkdir -p ~/.ssh
-          echo "$DEPLOY_SSH_KEY" | base64 -d > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan -H "$SERVER" >> ~/.ssh/known_hosts 2>/dev/null
-
-          # Cria diretório remoto se não existir
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@"$SERVER" \
-            "mkdir -p $REMOTE_DIR"
-
-          # Envia APK com nome versionado + atualiza link latest
-          scp -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
-            "$APK" root@"$SERVER":"$REMOTE_DIR/app-debug-${SHA:0:8}.apk"
-
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no root@"$SERVER" \
-            "ln -sf $REMOTE_DIR/app-debug-${SHA:0:8}.apk $REMOTE_DIR/latest.apk && \
-             echo '✓ Deploy concluído:' && ls -lh $REMOTE_DIR/latest.apk"
-
-          echo "✓ APK disponível em: $SERVER:$REMOTE_DIR/app-debug-${SHA:0:8}.apk"
+      - name: Update latest.apk symlink
+        if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: 163.176.169.89
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            DIR=/mnt/nexus-rmm/apps/android/releases
+            ln -sf "$DIR/app-debug.apk" "$DIR/latest.apk"
+            echo "✓ Deploy concluído:"
+            ls -lh "$DIR/latest.apk"
