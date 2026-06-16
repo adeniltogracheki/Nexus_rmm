@@ -38,6 +38,10 @@ class AgentService : Service() {
     }
 
     private var socket: Socket? = null
+
+    /** Expõe o estado da conexão sem vazar a referência interna do socket. */
+    val isSocketConnected: Boolean get() = socket?.connected() == true
+
     private var heartbeatHandler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
     private val startTime = System.currentTimeMillis()

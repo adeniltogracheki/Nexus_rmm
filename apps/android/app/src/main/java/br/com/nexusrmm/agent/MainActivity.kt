@@ -232,7 +232,7 @@ class MainActivity : AppCompatActivity() {
 
         if (enrolled) {
             val machineId  = AgentConfig.machineId(this)
-            val socketOk   = AgentService.instance?.socket?.connected() == true
+            val socketOk   = AgentService.instance?.isSocketConnected == true
             tvStatus.text  = if (socketOk) "🟢 Conectado ao servidor" else "🟡 Conectando…"
             tvMachineId.text = "ID: $machineId"
             tvStatus.setTextColor(if (socketOk) 0xFF00C070.toInt() else 0xFFFFAA00.toInt())
