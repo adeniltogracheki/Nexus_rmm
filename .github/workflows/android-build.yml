@@ -161,33 +161,38 @@ jobs:
           echo "Tamanho: $(du -sh $APK | cut -f1)"
           echo "SHA256:  $(sha256sum $APK | cut -d' ' -f1)"
 
-      # ── Deploy automático ao servidor ────────────────────────────────────────
-      # webfactory/ssh-agent carrega a chave no ssh-agent do runner.
-      # SCP e SSH subsequentes usam o agent automaticamente.
-      # Pré-requisito: DEPLOY_SSH_KEY = chave privada nexus_deploy (ed25519)
-
-      - name: Setup SSH agent
-        if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
-
-      - name: Add server to known_hosts
-        if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
-        run: ssh-keyscan -H 163.176.169.89 >> ~/.ssh/known_hosts
+      # ── Deploy automático ao servidor via HTTP ────────────────────────────────
+      # Envia o APK via POST para /api/ci/deploy-apk no servidor.
+      # Sem SSH — usa um token compartilhado (CI_DEPLOY_TOKEN).
+      # Pré-requisito: segredo CI_DEPLOY_TOKEN em Settings → Secrets → Actions.
 
       - name: Deploy APK to server
         if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
+        env:
+          CI_DEPLOY_TOKEN: ${{ secrets.CI_DEPLOY_TOKEN }}
         run: |
           SHA=${{ github.sha }}
           APK=apps/android/app/build/outputs/apk/debug/app-debug.apk
-          DIR=/mnt/nexus-rmm/apps/android/releases
+          VERSION=$(grep 'versionName' apps/android/app/build.gradle.kts | grep -oP '"\K[^"]+' || echo "0.0.0")
 
-          ssh root@163.176.169.89 "mkdir -p $DIR"
-          scp "$APK" root@163.176.169.89:"$DIR/app-debug-${SHA:0:8}.apk"
-          ssh root@163.176.169.89 "
-            ln -sf $DIR/app-debug-${SHA:0:8}.apk $DIR/latest.apk
-            echo '✓ Deploy concluído:'
-            ls -lh $DIR/latest.apk
-          "
-          echo "✓ APK disponível em: 163.176.169.89:$DIR/app-debug-${SHA:0:8}.apk"
+          echo "Enviando APK para o servidor via HTTP..."
+          RESP=$(curl -sf \
+            -X POST \
+            -H "Authorization: Bearer $CI_DEPLOY_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@$APK" \
+            "https://rmm.gmtec.tec.br/api/ci/deploy-apk?sha=${SHA:0:8}&version=$VERSION" \
+            -w "\nHTTP_STATUS:%{http_code}")
+
+          HTTP_STATUS=$(echo "$RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          BODY=$(echo "$RESP" | grep -v "HTTP_STATUS:")
+
+          echo "Resposta: $BODY"
+          echo "Status HTTP: $HTTP_STATUS"
+
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "✗ Deploy falhou (status $HTTP_STATUS)"
+            exit 1
+          fi
+
+          echo "✓ Deploy concluído: $BODY"

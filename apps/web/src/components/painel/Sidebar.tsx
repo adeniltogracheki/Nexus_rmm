@@ -369,9 +369,6 @@ export default function Sidebar({
         {pode("chamados") && (
           <NavBtn onClick={onAbrirChamados} icon={IconTicket} label="Chamados" />
         )}
-        {pode("agendador") && (
-          <NavBtn onClick={onAbrirTarefas} icon={IconClock} label="Agendador" />
-        )}
         {pode("usuarios") && (
           <NavBtn onClick={onAbrirUsuarios} icon={IconUsers} label="Usuários" />
         )}

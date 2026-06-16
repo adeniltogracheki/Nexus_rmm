@@ -13,6 +13,7 @@ import { gruposRoutes } from "./routes/grupos";
 import { servicosRoutes } from "./routes/servicos";
 import { inventarioRoutes } from "./routes/inventario";
 import { relatoriosRoutes } from "./routes/relatorios";
+import { ciDeployRoutes } from "./routes/ci-deploy";
 import { alertasRoutes } from "./routes/alertas";
 import { chamadosRoutes } from "./routes/chamados";
 import { usuariosRoutes } from "./routes/usuarios";
@@ -117,6 +118,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(servicosRoutes);
   await app.register(inventarioRoutes);
   await app.register(relatoriosRoutes);
+  await app.register(ciDeployRoutes);
   await app.register(alertasRoutes);
   await app.register(chamadosRoutes);
   await app.register(usuariosRoutes);

@@ -29,8 +29,14 @@ const EnvSchema = z.object({
 
   // Versão canônica de produção para auto-update dos agentes
   AGENTE_VERSAO_PROD: z.string().default("0.6.3"),
+  AGENTE_VERSAO_ANDROID: z.string().default("0.7.0-android"),
   // Grace period (s) antes de disparar o evento de auto-update. Em testes pode ser 0.
   AGENTE_UPDATE_GRACE_SECONDS: z.coerce.number().int().min(0).default(60),
+
+  // CI deploy — token compartilhado entre GitHub Actions e o endpoint /api/ci/deploy-apk
+  CI_DEPLOY_TOKEN: z.string().min(16).optional(),
+  // Diretório onde os APKs Android são salvos pelo CI
+  ANDROID_RELEASES_DIR: z.string().default("/mnt/nexus-rmm/apps/android/releases"),
 
   // Seed do owner inicial (db:seed).
   SEED_TENANT_NOME: z.string().default("GMTec"),

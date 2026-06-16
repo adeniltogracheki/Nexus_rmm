@@ -348,7 +348,7 @@ export default function DashboardPage() {
 
   // Relatórios analíticos do Tenant
   const [resumoRelatorios, setResumoRelatorios] = useState<any | null>(null);
-  const [relAba, setRelAba] = useState<"operacional" | "auditoria" | "inventario" | "manutencoes" | "sla">("operacional");
+  const [relAba, setRelAba] = useState<"operacional" | "auditoria" | "inventario" | "manutencoes" | "sla" | "frota">("operacional");
   const [manutReport, setManutReport] = useState<{ recentes: any[]; preventivas: any[]; custoTotal?: number; custos?: any[] } | null>(null);
   const [relEmpresa, setRelEmpresa] = useState<string>("");
   const [auditoria, setAuditoria] = useState<{ total: number; itens: any[]; pagina: number; limite: number } | null>(null);
@@ -360,6 +360,12 @@ export default function DashboardPage() {
   const [slaDados, setSlaDados] = useState<{ dias: number; empresas: any[]; total: number } | null>(null);
   const [slaDias, setSlaDias] = useState(30);
   const [carregandoSla, setCarregandoSla] = useState(false);
+
+  // Frota — visão geral com filtros
+  const [frotaDados, setFrotaDados] = useState<any[] | null>(null);
+  const [frotaCarregando, setFrotaCarregando] = useState(false);
+  const [frotaFiltros, setFrotaFiltros] = useState({ q: "", grupoId: "", tipoMaquina: "", online: "", so: "", criticidade: "", responsavel: "" });
+  const [frotaOrdem, setFrotaOrdem] = useState<{ col: string; dir: "asc" | "desc" }>({ col: "hostname", dir: "asc" });
 
   // A) Health Score histórico por máquina (sparkline 7 dias)
   const [healthHistory, setHealthHistory] = useState<{ data: string; score: number; cpu: number | null; ram: number | null }[] | null>(null);
@@ -480,6 +486,35 @@ export default function DashboardPage() {
       const r = await fetch("/api/relatorios/uptime?dias=30");
       if (r.ok) { const j = await r.json(); setUptimeDados(j.itens || []); }
     } catch {}
+  }
+
+  async function carregarFrota() {
+    setFrotaCarregando(true);
+    try {
+      const p = new URLSearchParams();
+      if (frotaFiltros.grupoId) p.set("grupoId", frotaFiltros.grupoId);
+      if (frotaFiltros.tipoMaquina) p.set("tipoMaquina", frotaFiltros.tipoMaquina);
+      if (frotaFiltros.online) p.set("online", frotaFiltros.online);
+      if (frotaFiltros.so) p.set("so", frotaFiltros.so);
+      if (frotaFiltros.criticidade) p.set("criticidade", frotaFiltros.criticidade);
+      if (frotaFiltros.responsavel) p.set("responsavel", frotaFiltros.responsavel);
+      if (frotaFiltros.q) p.set("q", frotaFiltros.q);
+      const r = await fetch(`/api/relatorios/frota?${p}`);
+      if (r.ok) { const j = await r.json(); setFrotaDados(j.itens || []); }
+    } catch {} finally { setFrotaCarregando(false); }
+  }
+
+  function exportarFrotaCsv() {
+    const linhas = [["Hostname", "Apelido", "Empresa/Grupo", "Tipo", "Status", "SO", "Versao_Agente", "CPU", "RAM_GB", "Disco_Total_GB", "Disco_Livre_GB", "Criticidade", "Responsavel", "Visto_Em"]];
+    for (const m of frotaDados || []) {
+      linhas.push([m.hostname || "", m.apelido || "", m.grupoNome || "", m.tipoMaquina || "", m.online ? "Online" : "Offline", m.soVersao || "", m.versaoAgente || "", m.cpu || "", String(m.ramGB ?? ""), String(m.discoTotalGB ?? ""), String(m.discoLivreGB ?? ""), m.criticidade || "", m.responsavel || "", m.vistoEm ? new Date(m.vistoEm).toLocaleString() : ""]);
+    }
+    const csv = linhas.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `frota-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    URL.revokeObjectURL(url);
   }
 
   async function carregarInvConsolidado() {
@@ -2963,6 +2998,7 @@ export default function DashboardPage() {
             <button onClick={() => { setRelAba("inventario"); if (!invConsolidado) carregarInvConsolidado(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${relAba === "inventario" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "text-zinc-500 hover:text-zinc-300"}`}>📦 Inventário</button>
             <button onClick={() => { setRelAba("manutencoes"); if (!manutReport) carregarManutReport(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${relAba === "manutencoes" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "text-zinc-500 hover:text-zinc-300"}`}>🔧 Manutenções</button>
             <button onClick={() => { setRelAba("sla"); if (!slaDados) carregarSla(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${relAba === "sla" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "text-zinc-500 hover:text-zinc-300"}`}>📶 SLA</button>
+            <button onClick={() => { setRelAba("frota"); if (!frotaDados) carregarFrota(); }} className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${relAba === "frota" ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30" : "text-zinc-500 hover:text-zinc-300"}`}>🖥️ Frota</button>
           </div>
 
           {relAba === "operacional" && (<>
@@ -3281,6 +3317,206 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* FROTA — visão geral com filtros avançados */}
+          {relAba === "frota" && (() => {
+            const frotaSorted = (frotaDados || []).slice().sort((a, b) => {
+              const dir = frotaOrdem.dir === "asc" ? 1 : -1;
+              const col = frotaOrdem.col;
+              const va = col === "maquina" ? (a.apelido || a.hostname || "").toLowerCase()
+                       : col === "grupo" ? (a.grupoNome || "").toLowerCase()
+                       : col === "tipo" ? (a.tipoMaquina || "")
+                       : col === "status" ? (a.online ? 0 : 1)
+                       : col === "so" ? (a.soVersao || "").toLowerCase()
+                       : col === "agente" ? (a.versaoAgente || "").toLowerCase()
+                       : col === "ram" ? (a.ramGB ?? -1)
+                       : col === "disco" ? (a.discoTotalGB ?? -1)
+                       : (a.hostname || "").toLowerCase();
+              const vb = col === "maquina" ? (b.apelido || b.hostname || "").toLowerCase()
+                       : col === "grupo" ? (b.grupoNome || "").toLowerCase()
+                       : col === "tipo" ? (b.tipoMaquina || "")
+                       : col === "status" ? (b.online ? 0 : 1)
+                       : col === "so" ? (b.soVersao || "").toLowerCase()
+                       : col === "agente" ? (b.versaoAgente || "").toLowerCase()
+                       : col === "ram" ? (b.ramGB ?? -1)
+                       : col === "disco" ? (b.discoTotalGB ?? -1)
+                       : (b.hostname || "").toLowerCase();
+              if (va < vb) return -1 * dir;
+              if (va > vb) return 1 * dir;
+              return 0;
+            });
+            const sortIcon = (col: string) => frotaOrdem.col === col ? (frotaOrdem.dir === "asc" ? " ↑" : " ↓") : "";
+            const thSort = (col: string, label: string) => (
+              <th
+                className="px-3 py-2.5 cursor-pointer hover:text-zinc-200 select-none whitespace-nowrap"
+                onClick={() => setFrotaOrdem((o) => ({ col, dir: o.col === col && o.dir === "asc" ? "desc" : "asc" }))}
+              >
+                {label}{sortIcon(col)}
+              </th>
+            );
+            const onlineTotal = (frotaDados || []).filter((m) => m.online).length;
+            return (
+              <div className="space-y-4">
+                <div className="hidden print:block mb-2">{user?.marca?.logoUrl ? <img src={user.marca.logoUrl} alt="" style={{ maxHeight: 50, marginBottom: 6 }} /> : null}<h1 className="text-xl font-bold">{user?.marca?.nome || "Nexus RMM"} — Relatório de Frota</h1><p className="text-xs">Gerado em {new Date().toLocaleString()}</p></div>
+                {/* Cabeçalho + exportar */}
+                <div className="flex flex-wrap items-center justify-between gap-3 no-print">
+                  <div>
+                    <span className="text-sm font-bold text-white">🖥️ Frota de Máquinas</span>
+                    {frotaDados && (
+                      <span className="ml-2 text-xs text-zinc-500">
+                        <span className="text-white font-mono">{frotaDados.length}</span> máquinas
+                        {" · "}
+                        <span className="text-emerald-400 font-mono">{onlineTotal}</span> online
+                        {" · "}
+                        <span className="text-zinc-400 font-mono">{frotaDados.length - onlineTotal}</span> offline
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={carregarFrota} disabled={frotaCarregando} className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-300 hover:text-white disabled:opacity-40 cursor-pointer">
+                      {frotaCarregando ? "⌛" : "↻"} Atualizar
+                    </button>
+                    <button onClick={() => window.print()} className="px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/30 text-xs font-bold text-violet-300 cursor-pointer no-print">🖨️ PDF</button>
+                    <button onClick={exportarFrotaCsv} disabled={!frotaDados || frotaDados.length === 0} className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-bold text-emerald-300 disabled:opacity-40 cursor-pointer no-print">📥 Excel/CSV</button>
+                  </div>
+                </div>
+                {/* Filtros */}
+                <div className="glass-panel rounded-2xl p-4 border border-zinc-800 no-print">
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="flex-1 min-w-[160px]">
+                      <label className="block text-[10px] text-zinc-500 mb-1">Busca livre</label>
+                      <input
+                        value={frotaFiltros.q}
+                        onChange={(e) => setFrotaFiltros((f) => ({ ...f, q: e.target.value }))}
+                        onKeyDown={(e) => e.key === "Enter" && carregarFrota()}
+                        placeholder="hostname, apelido…"
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 mb-1">Empresa/Grupo</label>
+                      <select value={frotaFiltros.grupoId} onChange={(e) => setFrotaFiltros((f) => ({ ...f, grupoId: e.target.value }))} className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 max-w-[180px] cursor-pointer">
+                        <option value="">Todos</option>
+                        {gruposList.map((g) => <option key={g.id} value={g.id}>{g.nome}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 mb-1">Tipo</label>
+                      <select value={frotaFiltros.tipoMaquina} onChange={(e) => setFrotaFiltros((f) => ({ ...f, tipoMaquina: e.target.value }))} className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 cursor-pointer">
+                        <option value="">Todos</option>
+                        <option value="pc">PC</option>
+                        <option value="notebook">Notebook</option>
+                        <option value="servidor">Servidor</option>
+                        <option value="mobile">Mobile</option>
+                        <option value="tablet">Tablet</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 mb-1">Status</label>
+                      <select value={frotaFiltros.online} onChange={(e) => setFrotaFiltros((f) => ({ ...f, online: e.target.value }))} className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 cursor-pointer">
+                        <option value="">Todos</option>
+                        <option value="true">Online</option>
+                        <option value="false">Offline</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 mb-1">SO</label>
+                      <input value={frotaFiltros.so} onChange={(e) => setFrotaFiltros((f) => ({ ...f, so: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && carregarFrota()} placeholder="Windows, Linux…" className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 w-32" />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 mb-1">Criticidade</label>
+                      <select value={frotaFiltros.criticidade} onChange={(e) => setFrotaFiltros((f) => ({ ...f, criticidade: e.target.value }))} className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 cursor-pointer">
+                        <option value="">Todas</option>
+                        <option value="operacional">Operacional</option>
+                        <option value="importante">Importante</option>
+                        <option value="critico">Crítico</option>
+                        <option value="missao_critica">Missão Crítica</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-zinc-500 mb-1">Responsável</label>
+                      <input value={frotaFiltros.responsavel} onChange={(e) => setFrotaFiltros((f) => ({ ...f, responsavel: e.target.value }))} onKeyDown={(e) => e.key === "Enter" && carregarFrota()} placeholder="nome…" className="px-2.5 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-600 w-28" />
+                    </div>
+                    <button onClick={carregarFrota} className="px-4 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-xs font-bold text-emerald-300 cursor-pointer">🔎 Filtrar</button>
+                    <button onClick={() => { setFrotaFiltros({ q: "", grupoId: "", tipoMaquina: "", online: "", so: "", criticidade: "", responsavel: "" }); setFrotaDados(null); }} className="px-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-400 hover:text-white cursor-pointer">✕ Limpar</button>
+                  </div>
+                </div>
+                {/* Tabela */}
+                <div className="glass-panel rounded-2xl border border-zinc-800 overflow-x-auto">
+                  <table className="w-full text-sm min-w-[1100px]">
+                    <thead>
+                      <tr className="text-left text-[11px] text-zinc-500 uppercase tracking-wider border-b border-zinc-800">
+                        {thSort("maquina", "Máquina")}
+                        {thSort("grupo", "Empresa/Grupo")}
+                        {thSort("tipo", "Tipo")}
+                        {thSort("status", "Status")}
+                        {thSort("so", "SO")}
+                        {thSort("agente", "Versão Agente")}
+                        <th className="px-3 py-2.5 whitespace-nowrap">CPU</th>
+                        {thSort("ram", "RAM")}
+                        {thSort("disco", "Disco")}
+                        <th className="px-3 py-2.5 whitespace-nowrap">Criticidade</th>
+                        <th className="px-3 py-2.5 whitespace-nowrap">Responsável</th>
+                        <th className="px-3 py-2.5 whitespace-nowrap">Visto em</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {frotaCarregando ? (
+                        <tr><td colSpan={12} className="px-4 py-12 text-center text-xs text-zinc-500">
+                          <div className="flex items-center justify-center gap-2"><div className="w-4 h-4 border-2 border-zinc-800 border-t-emerald-500 rounded-full animate-spin" /><span>Carregando frota…</span></div>
+                        </td></tr>
+                      ) : !frotaDados ? (
+                        <tr><td colSpan={12} className="px-4 py-12 text-center text-xs text-zinc-500">Clique em "Filtrar" para carregar a frota.</td></tr>
+                      ) : frotaSorted.length === 0 ? (
+                        <tr><td colSpan={12} className="px-4 py-8 text-center text-xs text-zinc-500">Nenhuma máquina no filtro.</td></tr>
+                      ) : frotaSorted.map((m) => {
+                        const discoPct = m.discoTotalGB && m.discoLivreGB != null ? Math.round(((m.discoTotalGB - m.discoLivreGB) / m.discoTotalGB) * 100) : null;
+                        const corDisco = discoPct == null ? "" : discoPct >= 90 ? "#ef4444" : discoPct >= 75 ? "#f59e0b" : "#10b981";
+                        const critCor = m.criticidade === "missao_critica" ? "text-red-400" : m.criticidade === "critico" ? "text-orange-400" : m.criticidade === "importante" ? "text-amber-400" : "text-zinc-500";
+                        const critLabel = m.criticidade === "missao_critica" ? "M. Crítica" : m.criticidade === "critico" ? "Crítico" : m.criticidade === "importante" ? "Importante" : "Operacional";
+                        return (
+                          <tr key={m.id} className="border-b border-zinc-900/60 hover:bg-zinc-900/20">
+                            <td className="px-3 py-2 text-white font-semibold text-xs whitespace-nowrap">
+                              {m.apelido ? <><span>{m.apelido}</span><span className="text-zinc-600 ml-1 font-normal">({m.hostname})</span></> : m.hostname}
+                            </td>
+                            <td className="px-3 py-2 text-zinc-400 text-xs">{m.grupoNome || <span className="text-zinc-700">—</span>}</td>
+                            <td className="px-3 py-2 text-zinc-400 text-xs capitalize">{m.tipoMaquina}</td>
+                            <td className="px-3 py-2 text-xs">
+                              <span className={`inline-flex items-center gap-1 font-semibold ${m.online ? "text-emerald-400" : "text-zinc-500"}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${m.online ? "bg-emerald-500" : "bg-zinc-600"}`} />
+                                {m.online ? "Online" : "Offline"}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2 text-zinc-300 text-xs max-w-[160px] truncate">{m.soVersao || <span className="text-zinc-700">—</span>}</td>
+                            <td className="px-3 py-2 text-xs">
+                              {m.versaoAgente ? (
+                                <span className="px-1.5 py-0.5 rounded bg-zinc-800 border border-zinc-700 text-zinc-300 font-mono text-[10px]">{m.versaoAgente}</span>
+                              ) : <span className="text-zinc-700">—</span>}
+                            </td>
+                            <td className="px-3 py-2 text-zinc-400 text-xs max-w-[140px] truncate">{m.cpu || <span className="text-zinc-700">—</span>}</td>
+                            <td className="px-3 py-2 text-zinc-300 text-xs font-mono whitespace-nowrap">{m.ramGB ? m.ramGB + " GB" : <span className="text-zinc-700">—</span>}</td>
+                            <td className="px-3 py-2 text-xs">
+                              {m.discoTotalGB ? (
+                                <div className="flex items-center gap-1.5 min-w-[100px]">
+                                  <div className="flex-1 h-1.5 rounded-full bg-zinc-800 overflow-hidden">
+                                    <div className="h-full rounded-full barra-print" style={{ width: (discoPct ?? 0) + "%", background: corDisco }} />
+                                  </div>
+                                  <span className="text-zinc-400 font-mono text-[10px] shrink-0">{m.discoLivreGB}GB liv.</span>
+                                </div>
+                              ) : <span className="text-zinc-700">—</span>}
+                            </td>
+                            <td className={`px-3 py-2 text-xs font-semibold ${critCor}`}>{critLabel}</td>
+                            <td className="px-3 py-2 text-zinc-400 text-xs">{m.responsavel || <span className="text-zinc-700">—</span>}</td>
+                            <td className="px-3 py-2 text-zinc-500 text-[10px] whitespace-nowrap">{m.vistoEm ? new Date(m.vistoEm).toLocaleString() : <span className="text-zinc-700">—</span>}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* G) SLA de disponibilidade */}
           {relAba === "sla" && (
@@ -6905,28 +7141,54 @@ export default function DashboardPage() {
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <span className="text-base">📱</span>
-                <h4 className="text-xs font-bold text-zinc-200">Android / iOS — App Móvel (PWA)</h4>
+                <h4 className="text-xs font-bold text-zinc-200">Android — Agente Nativo (APK)</h4>
+                <span className="px-2 py-0.5 rounded-full text-[9px] bg-emerald-500/15 text-emerald-300 font-bold">Android 8+</span>
               </div>
-              <p className="text-[11px] text-zinc-500">O Nexus RMM funciona como app instalável no celular — sem precisar de loja de aplicativos:</p>
+              <p className="text-[11px] text-zinc-500">Instale o agente nativo para monitoramento completo: localização GPS, captura de tela remota, inventário de hardware e controle de serviços.</p>
+
               <div className="space-y-2 text-xs text-zinc-400">
                 <div className="flex items-start gap-2">
                   <span className="text-emerald-400 shrink-0 mt-0.5">1.</span>
-                  <span>Abra <b className="text-white">rmm.gmtec.tec.br</b> no Chrome (Android) ou Safari (iOS)</span>
+                  <span>No dispositivo Android, acesse <b className="text-white">Configurações → Segurança → Fontes desconhecidas</b> e habilite a instalação de APKs externos</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-emerald-400 shrink-0 mt-0.5">2.</span>
-                  <span>No Chrome: toque nos 3 pontos → <b className="text-white">Adicionar à tela inicial</b></span>
+                  <span>Baixe o APK mais recente:</span>
                 </div>
+              </div>
+
+              <div className="bg-zinc-950 rounded-xl p-3 border border-zinc-800 font-mono text-[11px] text-emerald-300 overflow-x-auto">
+                https://rmm.gmtec.tec.br/agente/nexus-rmm-android.apk
+              </div>
+
+              <div className="space-y-2 text-xs text-zinc-400">
                 <div className="flex items-start gap-2">
                   <span className="text-emerald-400 shrink-0 mt-0.5">3.</span>
-                  <span>No Safari (iOS): toque em <b className="text-white">Compartilhar → Adicionar à Tela de Início</b></span>
+                  <span>Abra o APK baixado e confirme a instalação</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <span className="text-emerald-400 shrink-0 mt-0.5">4.</span>
-                  <span>O app abre em tela cheia, sem barra do navegador, igual a um app nativo</span>
+                  <span>Abra o app <b className="text-white">Nexus RMM</b>, cole o token gerado em <b className="text-white">Máquinas → Cadastrar Nova Máquina</b> e toque em <b className="text-white">Registrar</b></span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-emerald-400 shrink-0 mt-0.5">5.</span>
+                  <span>Conceda as permissões solicitadas (acessibilidade para controle remoto, localização para GPS, captura de tela quando solicitada pelo painel)</span>
                 </div>
               </div>
-              <p className="text-[10px] text-zinc-600">Perfeito para aprovar remediações IA, verificar alertas e acompanhar máquinas offline onde quer que esteja.</p>
+
+              <div className="bg-zinc-900/60 rounded-lg p-3 border border-zinc-800 space-y-1">
+                <p className="text-[10px] font-semibold text-zinc-300">Recursos disponíveis no agente Android:</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[10px] text-zinc-500">
+                  <span>✅ Monitoramento de CPU / RAM</span>
+                  <span>✅ Localização GPS em tempo real</span>
+                  <span>✅ Acesso remoto (tela ao vivo)</span>
+                  <span>✅ Inventário de hardware</span>
+                  <span>✅ Alertas e notificações push</span>
+                  <span>✅ Atualização automática pelo painel</span>
+                </div>
+              </div>
+
+              <p className="text-[10px] text-zinc-600">O agente se atualiza automaticamente — quando uma nova versão é publicada, o painel exibe o botão <b>Atualizar</b> na linha da máquina e envia o APK diretamente para o dispositivo.</p>
             </div>
           </div>
 
