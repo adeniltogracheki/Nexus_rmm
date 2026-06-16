@@ -162,38 +162,32 @@ jobs:
           echo "SHA256:  $(sha256sum $APK | cut -d' ' -f1)"
 
       # ── Deploy automático ao servidor ────────────────────────────────────────
-      # Usa appleboy/scp-action — recebe a chave PEM diretamente, sem base64.
-      # Pré-requisito: DEPLOY_SSH_KEY = conteúdo bruto de ~/.ssh/id_ed25519
+      # webfactory/ssh-agent carrega a chave no ssh-agent do runner.
+      # SCP e SSH subsequentes usam o agent automaticamente.
+      # Pré-requisito: DEPLOY_SSH_KEY = chave privada nexus_deploy (ed25519)
 
-      - name: Create releases dir on server
+      - name: Setup SSH agent
         if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
-        uses: appleboy/ssh-action@v1.0.3
+        uses: webfactory/ssh-agent@v0.9.0
         with:
-          host: 163.176.169.89
-          username: root
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: mkdir -p /mnt/nexus-rmm/apps/android/releases
+          ssh-private-key: ${{ secrets.DEPLOY_SSH_KEY }}
+
+      - name: Add server to known_hosts
+        if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
+        run: ssh-keyscan -H 163.176.169.89 >> ~/.ssh/known_hosts
 
       - name: Deploy APK to server
         if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: 163.176.169.89
-          username: root
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          source: apps/android/app/build/outputs/apk/debug/app-debug.apk
-          target: /mnt/nexus-rmm/apps/android/releases/
-          strip_components: 6
+        run: |
+          SHA=${{ github.sha }}
+          APK=apps/android/app/build/outputs/apk/debug/app-debug.apk
+          DIR=/mnt/nexus-rmm/apps/android/releases
 
-      - name: Update latest.apk symlink
-        if: steps.step_resources.outcome == 'success' && steps.step_kotlin.outcome == 'success'
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: 163.176.169.89
-          username: root
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            DIR=/mnt/nexus-rmm/apps/android/releases
-            ln -sf "$DIR/app-debug.apk" "$DIR/latest.apk"
-            echo "✓ Deploy concluído:"
-            ls -lh "$DIR/latest.apk"
+          ssh root@163.176.169.89 "mkdir -p $DIR"
+          scp "$APK" root@163.176.169.89:"$DIR/app-debug-${SHA:0:8}.apk"
+          ssh root@163.176.169.89 "
+            ln -sf $DIR/app-debug-${SHA:0:8}.apk $DIR/latest.apk
+            echo '✓ Deploy concluído:'
+            ls -lh $DIR/latest.apk
+          "
+          echo "✓ APK disponível em: 163.176.169.89:$DIR/app-debug-${SHA:0:8}.apk"
