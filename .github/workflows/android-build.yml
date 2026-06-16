@@ -174,9 +174,9 @@ jobs:
           REMOTE_DIR=/mnt/nexus-rmm/apps/android/releases
           SHA=${{ github.sha }}
 
-          # Configura SSH
+          # Configura SSH — chave armazenada em base64 para preservar quebras de linha
           mkdir -p ~/.ssh
-          echo "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          echo "$DEPLOY_SSH_KEY" | base64 -d > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "$SERVER" >> ~/.ssh/known_hosts 2>/dev/null
 
